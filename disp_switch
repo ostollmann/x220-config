@@ -1,0 +1,122 @@
+#!/bin/bash
+
+shopt -s nocasematch
+
+if [ -z "$1" ]; then
+    echo "Error: no output given!"
+    exit
+fi
+
+case "$1" in
+    "INT" )
+        echo "Switching to internal monitor."
+        output="LVDS1"
+        ;;
+    "DP" ) 
+        echo "Switching to DisplayPort output."
+        output="HDMI1"
+        ;;
+    "DP1" ) 
+        echo "Switching to DisplayPort output."
+        output="DP1"
+        ;;
+    "VGA" )
+        echo "Switching to VGA output."
+        output="VGA1"
+        ;;
+    * )
+        echo "Error: unknown output!"
+        exit
+esac
+
+function in_list() {
+if [ -z "$1" ]; then
+    echo "Error: no list given!"
+    return 1
+fi
+if [ -z "$2" ]; then
+    echo "Error: no item given!"
+    return 1
+fi
+
+for item in $1; do
+    if [ "$item" = $2 ]; then
+        echo "Found $item in $1"
+        return 0
+    fi
+done
+echo "Did not find $2 in available outputs ($1)!"
+return 1
+}
+
+function get_current() {
+    echo `xrandr | grep " connected" | grep "+" | cut -d " " -f 1`
+}
+
+function get_connected() {
+    echo `xrandr | grep " connected" | cut -d " " -f 1`
+}
+
+echo "Requested output: $output"
+
+current=$(get_current)
+echo "Current output: $current"
+
+connected=$(get_connected)
+#connected="VGA1"
+echo "Connected outputs: $connected"
+
+if [ "$output" = "$current" ]; then
+    echo "Output already selected!"
+    exit
+fi
+
+
+if in_list "$connected" "$output"; then
+    xrandr --output $current --off --output $output --auto
+    if [ -a /home/ost/.x220-config/BACKGROUND ]; then
+        background=`cat /home/ost/.x220-config/BACKGROUND`
+        echo "Background defined: $background"
+        if [ -a $backgound ]; then
+            echo "Background file exists."
+            feh --bg-scale "$background" &
+        else
+            echo "Background file ($background) does not exist."
+        fi
+    else
+        echo "No background defined."
+    fi
+else
+    echo "Cannot switch!"
+    exit
+fi
+
+echo ""
+echo "Switch should have succeeded!"
+
+echo ""
+echo "Did it work? [y/n]"
+
+read resp
+
+echo ""
+echo "Response was: $resp"
+if [ "$resp" = "y" ]; then
+    echo "OK. Bye!"
+    exit
+else
+    echo "Shit! Switching back to previous setup..."
+    xrandr --output $output --off --output $current --auto
+    if [ -a /home/ost/.x220-config/BACKGROUND ]; then
+        background=`cat /home/ost/.x220-config/BACKGROUND`
+        echo "Background defined: $background"
+        if [ -a $backgound ]; then
+            echo "Background file exists."
+            feh --bg-scale "$background" &
+        else
+            echo "Background file ($background) does not exist."
+        fi
+    else
+        echo "No background defined."
+    fi
+fi
